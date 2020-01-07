@@ -1,0 +1,103 @@
+= Simple MicroProfile Metric Tags Example
+
+Simple Quarkus MicroProfile application that creates a metric with two tags. The domain model is "student", with a student either being part-time or full-time. The metric counts the number of times the `/parttime` and `/fulltime` endpoints are called.
+
+Instructions are included for viewing the metric on a Grafana dashboard.
+
+Steps to see running demonstrates Metrics tags
+
+. Build the application
++
+--
+[source,bash]
+----
+$ mvn clean package
+----
+--
+
+. Build the docker container
++
+--
+.Terminal Window
+[source,bash]
+----
+$ docker build \
+    -t acme/metrics-tags:1.0 \
+    -f src/main/docker/Dockerfile.jvm \
+    .
+----
+--
+
+. View the endpoint
++
+--
+.Terminal Window
+[source,bash]
+----
+$ curl -s localhost:8080/metrics/application | grep status
+----
+
+.Sample Output
+....
+# TYPE application_status_total counter
+application_status_total{status="part-time"} 1.0
+application_status_total{status="full-time"} 3.0
+....
+--
+
+. Start Prometheus, Grafana, and application to see the counter metric with tags (part-time and full-time)
++
+--
+.Terminal Window
+[source,bash]
+----
+$ cd docker
+$ docker-compose up
+----
+--
++
+
+. Get Prometheus IP Address
++
+--
+.Terminal Window
+[source,bash]
+----
+docker inspect docker_prom_1 | grep IPA
+----
+.Sample Output
+....
+...
+...
+"SecondaryIPAddresses": null,
+"IPAddress": "",
+    "IPAMConfig": null,
+    "IPAddress": "172.27.0.3", <1>
+...
+...
+....
+<1> The IP address
+--
+
+. Login in to grafana
+.. Open http://localhost:3000 in a browser
+.. Username `admin`, password `admin`
+
+. Add a datasource
+.. Use ip address from step 4 to fill in url field (Ex: http://localhost:172.27.0.3:9090)
+.. Go back to main screen
+
+. Add Grafana Dashboard
+.. In the upper-left hand corner, hover the mouse cursor over the large `+` sign, then select `Import`. This brings up the Import screen.
+.. Click `Upload .json File`, navigate to the project directory's `docker` subdirectory, and select `Student Status Dashboard.json`
+
+. Generate requests to graph the results
+.. Run `curl -i localhost:8080/student/fulltime` a bunch of times. The dashboard shows the most recent 5 minutes of data with a 5 second refresh. Watch the `Student Status Requests` dashboard update as the endpoint consumes requests.
+.. Run `curl -i localhost:8080/student/parttime` a bunch of times. The part time status updates.
+
+The graph only contains one attribute, even though two graph lines are shown (one for each status).
+
+. View the graph configuration
+.. Click on the `Student status Requests` title and select `Edit`
+.. Note that the only attribute name is `application_status_total`, but a graph line is shown for each Metric tag.
+.. The legend Format contains `{{student}}`, which is a template parameter to display the status text (`part-time` or `full time`). The `student` tag name is defined by the @Counted(name="status") parameter.
