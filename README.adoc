@@ -1,8 +1,10 @@
 = Simple MicroProfile Metric Tags Example
 
-Simple Quarkus MicroProfile application that creates a metric with two tags. The domain model is "student", with a student either being part-time or full-time. The metric counts the number of times the `/parttime` and `/fulltime` endpoints are called.
+Simple Quarkus MicroProfile application that creates a metric with two tags. The domain model uses a "student", with a student either being part-time or full-time. There are two MicroProfile Metrics `@Counted` metrics that count the number of times the `/parttime` and `/fulltime` endpoints are called.
 
 Instructions are included for viewing the metric on a Grafana dashboard.
+
+== Compiling, testing, and packaging the application
 
 Steps to see running demonstrates Metrics tags
 
@@ -14,11 +16,73 @@ Steps to see running demonstrates Metrics tags
 $ mvn clean package
 ----
 --
++
+
+. Run the application
++
+--
+.Terminal 1
+[source,bash]
+----
+$ java -jar target/metrics-tags-1.0-SNAPSHOT-runner.jar
+----
+
+.Terminal 1 Sample Output
+....
+2020-01-06 18:10:52,240 INFO  [io.quarkus] (main) metrics-tags 1.0-SNAPSHOT (running on Quarkus 1.1.0.Final) started in 0.743s. Listening on: http://0.0.0.0:8080
+2020-01-06 18:10:52,255 INFO  [io.quarkus] (main) Profile prod activated.
+2020-01-06 18:10:52,255 INFO  [io.quarkus] (main) Installed features: [cdi, resteasy, smallrye-metrics]
+....
+--
+
+. Send requests to the endpoints a few times
++
+--
+.Terminal 2
+[source,bash]
+----
+# Part time endpoint
+$ curl -s localhost:8080/student/parttime
+$ curl -s localhost:8080/student/parttime
+# Full time endpoint
+$ curl -s localhost:8080/student/fulltime
+$ curl -s localhost:8080/student/fulltime
+$ curl -s localhost:8080/student/fulltime
+----
+--
+. View the metrics endpoint
++
+--
+.Terminal 2
+[source,bash]
+----
+$ curl -s localhost:8080/metrics/application | grep status
+----
+
+.Terminal 2 Sample Output
+....
+# TYPE application_status_total counter
+application_status_total{status="part-time"} 1.0
+application_status_total{status="full-time"} 3.0
+....
+--
+
+. Stop the application
++
+--
+.Terminal 1
+[source,bash]
+----
+# Press CTRL-C
+----
+--
+
+== View dashboard in Grafana
 
 . Build the docker container
 +
 --
-.Terminal Window
+.Terminal 1
 [source,bash]
 ----
 $ docker build \
@@ -28,27 +92,10 @@ $ docker build \
 ----
 --
 
-. View the endpoint
-+
---
-.Terminal Window
-[source,bash]
-----
-$ curl -s localhost:8080/metrics/application | grep status
-----
-
-.Sample Output
-....
-# TYPE application_status_total counter
-application_status_total{status="part-time"} 1.0
-application_status_total{status="full-time"} 3.0
-....
---
-
 . Start Prometheus, Grafana, and application to see the counter metric with tags (part-time and full-time)
 +
 --
-.Terminal Window
+.Terminal 1
 [source,bash]
 ----
 $ cd docker
@@ -60,12 +107,12 @@ $ docker-compose up
 . Get Prometheus IP Address
 +
 --
-.Terminal Window
+.Terminal 2
 [source,bash]
 ----
 docker inspect docker_prom_1 | grep IPA
 ----
-.Sample Output
+.Terminal 2 Sample Output
 ....
 ...
 ...
@@ -80,16 +127,20 @@ docker inspect docker_prom_1 | grep IPA
 --
 
 . Login in to grafana
-.. Open http://localhost:3000 in a browser
+.. Open http://localhost:3000/datasources in a browser
 .. Username `admin`, password `admin`
 
 . Add a datasource
-.. Use ip address from step 4 to fill in url field (Ex: http://localhost:172.27.0.3:9090)
+.. Click `Add data source`
+.. Choose Prometheus
+.. Use ip address from step 4 to fill in url field (Ex: http://localhost:172.27.0.3:9090).
+.. Press Save & Test
 .. Go back to main screen
 
 . Add Grafana Dashboard
 .. In the upper-left hand corner, hover the mouse cursor over the large `+` sign, then select `Import`. This brings up the Import screen.
 .. Click `Upload .json File`, navigate to the project directory's `docker` subdirectory, and select `Student Status Dashboard.json`
+.. Click `Import`
 
 . Generate requests to graph the results
 .. Run `curl -i localhost:8080/student/fulltime` a bunch of times. The dashboard shows the most recent 5 minutes of data with a 5 second refresh. Watch the `Student Status Requests` dashboard update as the endpoint consumes requests.
