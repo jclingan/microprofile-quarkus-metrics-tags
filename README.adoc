@@ -152,3 +152,5 @@ The graph only contains one attribute, even though two graph lines are shown (on
 .. Click on the `Student status Requests` title and select `Edit`
 .. Note that the only attribute name is `application_status_total`, but a graph line is shown for each Metric tag.
 .. The legend Format contains `{{student}}`, which is a template parameter to display the status text (`part-time` or `full time`). The `student` tag name is defined by the @Counted(name="status") parameter.
+
+NOTE: With MicroProfile Metrics, tags can be applied globally by defining a `MP_METRICS_TAGS` environment variable or by defining tags using the `mp.metrics.tags` environment variable directory. Tag format is limited to the `[a-zA-Z_][a-zA-Z0-9_]*`` regular expression. Uncomment the `mp.metrics.tags` property in `application.properties` to see this in action.
